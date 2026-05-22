@@ -124,7 +124,7 @@ fi
 
 # Build `flight` engine for all supported targets
 cd "${FLITEDIR}"
-for arch in armeabi armeabiv7a x86 mips;
+for arch in armeabi armeabiv7a x86;
 do
 	if ! [ -e "${FLITEDIR}/build/${arch}-android/lib/libflite.a" ];
 	then
