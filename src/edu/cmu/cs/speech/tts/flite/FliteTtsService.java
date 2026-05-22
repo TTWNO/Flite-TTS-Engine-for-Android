@@ -69,6 +69,10 @@ public class FliteTtsService extends TextToSpeechService {
 
 	@Override
 	public void onCreate() {
+		// Must run before anything reads Voice.getDataStorageBasePath(), since
+		// the service may be started during Direct Boot (lock screen, pre first
+		// unlock) where external storage is unavailable.
+		Voice.init(this);
 		initializeFliteEngine();
 
 		// This calls onIsLanguageAvailable() and must run after Initialization

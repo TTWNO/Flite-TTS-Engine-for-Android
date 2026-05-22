@@ -54,11 +54,16 @@ public class FileDownloader {
 	public boolean success;
 
 	public void saveUrlAsFile(final String url, final String filename) {
+		saveUrlAsFile(url, filename, null);
+	}
+
+	public void saveUrlAsFile(final String url, final String filename, final Runnable onFinished) {
 		finished = false;
 		success = false;
 		new Thread() {
 			public void run() {
 				save(url, filename);
+				if (onFinished != null) onFinished.run();
 			}
 		}.start();
 	}

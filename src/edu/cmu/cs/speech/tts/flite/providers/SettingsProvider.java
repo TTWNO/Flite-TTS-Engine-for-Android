@@ -39,11 +39,15 @@ package edu.cmu.cs.speech.tts.flite.providers;
 
 import java.io.File;
 
+import edu.cmu.cs.speech.tts.flite.Voice;
+
 import android.content.ContentProvider;
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
 
 /**
@@ -97,18 +101,36 @@ public class SettingsProvider extends ContentProvider {
 
   @Override
   public boolean onCreate() {
+    Context ctx = getContext();
+    if (ctx != null) {
+      Voice.init(ctx);
+    }
     return true;
   }
 
   @Override
   public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
                       String sortOrder) {
-	  final File dataPath = Environment.getExternalStorageDirectory();
+	  // The legacy pre-ICS TTS engine appends "/flite-data" to whatever we
+	  // return here (see native init() in edu_cmu_cs_speech_tts_flite_engine.cc).
+	  // We must therefore hand back the *parent* of the flite-data directory,
+	  // which now lives in device-protected storage on API 24+ so the engine
+	  // works pre-unlock.
+	  final String dataPath;
+	  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+	    Context ctx = getContext();
+	    if (ctx != null) {
+	      Voice.init(ctx);
+	    }
+	    dataPath = new File(Voice.getDataStorageBasePath()).getParent();
+	  } else {
+	    dataPath = Environment.getExternalStorageDirectory().getPath();
+	  }
 	  final String[] dummyColumns = {
 			  		"", ""
 	  	};
 	  	final SettingsCursor cursor = new SettingsCursor(dummyColumns);
-	  cursor.putSettings(dataPath.getPath());
+	  cursor.putSettings(dataPath);
 	  return cursor;
   }
 }

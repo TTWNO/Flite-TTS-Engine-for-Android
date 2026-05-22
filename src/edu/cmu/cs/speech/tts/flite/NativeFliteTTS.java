@@ -121,7 +121,8 @@ public class NativeFliteTTS {
 
     }
 
-    private int mNativeData;
+    // Holds a native pointer; must be long to work on 64-bit ABIs (arm64-v8a).
+    private long mNativeData;
 	private static native final boolean nativeClassInit();
 	private native final boolean nativeCreate(String path);
     private native final boolean nativeDestroy();

@@ -70,6 +70,8 @@ public class DownloadVoiceData extends ListActivity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
+		Voice.init(this);
+
 		registerReceiver(onComplete,
 				new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
 
@@ -195,23 +197,36 @@ public class DownloadVoiceData extends ListActivity {
 						builder.setPositiveButton("Download Voice", new DialogInterface.OnClickListener() {
 							@Override
 							public void onClick(DialogInterface dialog, int which) {
-								// Create destination directory
-								File f = new File
-										(vox.getPath());
-								f.mkdirs();
-								f.delete();
+								// Voice files now live in device-protected internal storage so
+								// they're readable during Direct Boot. The system DownloadManager
+								// refuses /data/user_de/... destinations with SecurityException
+								// "Unsupported path", so we download in-process via FileDownloader.
+								final File destFile = new File(vox.getPath());
+								File parent = destFile.getParentFile();
+								if (parent != null) parent.mkdirs();
 								String url = Voice.getDownloadURLBasePath() + vox.getName() + ".flitevox";
-								DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
-								request.setDescription("Downloading Flite Voice: " + vox.getName());
-								request.setTitle("Flite TTS Voice Download");
-								request.setDestinationUri(Uri.fromFile(new File(vox.getPath())));
 
-								DownloadManager manager = (DownloadManager) mContext.getSystemService(Context.DOWNLOAD_SERVICE);
-								manager.enqueue(request);
+								final FileDownloader fdload = new FileDownloader();
+								fdload.saveUrlAsFile(url, destFile.getAbsolutePath(), new Runnable() {
+									@Override
+									public void run() {
+										((DownloadVoiceData) mContext).runOnUiThread(new Runnable() {
+											@Override
+											public void run() {
+												if (fdload.success) {
+													Toast.makeText(mContext, "Flite TTS Voice Data Downloaded!", Toast.LENGTH_SHORT).show();
+												} else {
+													Toast.makeText(mContext, "Voice download failed", Toast.LENGTH_SHORT).show();
+												}
+												refresh();
+											}
+										});
+									}
+								});
+
 								Toast toast = Toast.makeText(mContext, "Download Started", Toast.LENGTH_SHORT);
 								toast.show();
 								actionButton.setVisibility(View.INVISIBLE);
-
 							}
 						});
 						builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {

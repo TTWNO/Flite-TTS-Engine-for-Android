@@ -39,22 +39,30 @@ package edu.cmu.cs.speech.tts.flite;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
 
+import android.annotation.TargetApi;
 import android.app.DownloadManager;
 import android.content.Context;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
 import android.util.Log;
 
 public class Voice {
 	private final static String LOG_TAG = "Flite_Java_" + Voice.class.getSimpleName();
-	private final static String FLITE_DATA_PATH = Environment.getExternalStorageDirectory()
+	private final static String LEGACY_FLITE_DATA_PATH = Environment.getExternalStorageDirectory()
 			+ "/flite-data/";
 	private final static String VOICE_BASE_URL = "http://festvox.org/flite/voices/cg/voxdata-v2.0.0/";
+
+	// Resolved at runtime by init(Context). The flite-data tree must live in
+	// storage that is readable before the first user unlock (device-protected
+	// storage on API 24+), otherwise TalkBack cannot speak on the lock screen.
+	private static String sFliteDataPath;
 
 	private String mVoiceName;
 	private String mVoiceMD5;
@@ -66,10 +74,93 @@ public class Voice {
 	private boolean mIsVoiceAvailable;
 
 	/**
+	 * Resolve the flite-data directory for the running device. Must be called
+	 * from every entry point (service, activity, provider) before any code
+	 * touches getDataStorageBasePath().
+	 *
+	 * On API 24+ we use device-protected storage so the engine works during
+	 * Direct Boot (lock screen, before first unlock). On older releases we
+	 * keep the legacy external-storage path so existing voice downloads stay
+	 * usable without a re-download.
+	 */
+	public static synchronized void init(Context context) {
+		if (sFliteDataPath != null) {
+			return;
+		}
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+			sFliteDataPath = resolveDeviceProtectedPath(context);
+			maybeMigrateLegacyVoices();
+		} else {
+			sFliteDataPath = LEGACY_FLITE_DATA_PATH;
+		}
+		Log.i(LOG_TAG, "flite-data path resolved to: " + sFliteDataPath);
+	}
+
+	@TargetApi(Build.VERSION_CODES.N)
+	private static String resolveDeviceProtectedPath(Context context) {
+		Context de = context.createDeviceProtectedStorageContext();
+		return new File(de.getFilesDir(), "flite-data").getAbsolutePath() + "/";
+	}
+
+	/**
 	 * @return absolute path to the flite-data directory
 	 */
 	public static String getDataStorageBasePath() {
-		return FLITE_DATA_PATH;
+		if (sFliteDataPath == null) {
+			// Fall back to the legacy path so callers that forgot to init
+			// don't NPE. They should still call init() — this preserves
+			// behaviour on pre-N devices but won't survive Direct Boot.
+			return LEGACY_FLITE_DATA_PATH;
+		}
+		return sFliteDataPath;
+	}
+
+	private static void maybeMigrateLegacyVoices() {
+		File legacy = new File(LEGACY_FLITE_DATA_PATH);
+		File target = new File(sFliteDataPath);
+		if (!legacy.isDirectory()) {
+			return;
+		}
+		if (new File(target, "cg").isDirectory()) {
+			// Already migrated (or freshly installed on N+).
+			return;
+		}
+		Log.i(LOG_TAG, "Migrating voices from " + legacy + " to " + target);
+		try {
+			copyRecursively(legacy, target);
+		} catch (IOException e) {
+			// Best-effort: user can re-download from the voice manager UI.
+			Log.w(LOG_TAG, "Voice migration failed: " + e.getMessage());
+		}
+	}
+
+	private static void copyRecursively(File src, File dst) throws IOException {
+		if (src.isDirectory()) {
+			if (!dst.exists() && !dst.mkdirs()) {
+				throw new IOException("Could not create " + dst);
+			}
+			String[] children = src.list();
+			if (children == null) return;
+			for (String name : children) {
+				copyRecursively(new File(src, name), new File(dst, name));
+			}
+			return;
+		}
+		FileInputStream in = new FileInputStream(src);
+		try {
+			FileOutputStream out = new FileOutputStream(dst);
+			try {
+				byte[] buf = new byte[8192];
+				int n;
+				while ((n = in.read(buf)) > 0) {
+					out.write(buf, 0, n);
+				}
+			} finally {
+				out.close();
+			}
+		} finally {
+			in.close();
+		}
 	}
 
 	/**

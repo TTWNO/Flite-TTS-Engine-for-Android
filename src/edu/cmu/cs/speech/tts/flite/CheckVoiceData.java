@@ -54,12 +54,18 @@ import android.util.Log;
 
 public class CheckVoiceData extends Activity {
 	private final static String LOG_TAG = "Flite_Java_" + CheckVoiceData.class.getSimpleName();
-	private final static String FLITE_DATA_PATH = Voice.getDataStorageBasePath();
-	public final static String VOICE_LIST_FILE = FLITE_DATA_PATH+"cg/voices-20150129.list";
+
+	public static String getVoiceListFile() {
+		return Voice.getDataStorageBasePath() + "cg/voices-20150129.list";
+	}
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		// Resolve the flite-data path against the device-protected storage on
+		// API 24+ so the system can verify voice data during Direct Boot.
+		Voice.init(this);
+		final String FLITE_DATA_PATH = Voice.getDataStorageBasePath();
 		int result = TextToSpeech.Engine.CHECK_VOICE_DATA_PASS;
 		Intent returnData = new Intent();
 		returnData.putExtra(TextToSpeech.Engine.EXTRA_VOICE_DATA_ROOT_DIRECTORY,
@@ -100,7 +106,7 @@ public class CheckVoiceData extends Activity {
 		 * if we don't already have a file.
 		 */
 
-		if(!Utility.pathExists(VOICE_LIST_FILE)) {
+		if(!Utility.pathExists(getVoiceListFile())) {
 			Log.e(LOG_TAG, "Voice list file doesn't exist. Try getting it from server.");
 
 			DownloadVoiceList(null);
@@ -110,10 +116,10 @@ public class CheckVoiceData extends Activity {
 		 * possibly because Internet connection was not available, we must create a dummy
 		 *
 		 */
-		if(!Utility.pathExists(VOICE_LIST_FILE)) {
+		if(!Utility.pathExists(getVoiceListFile())) {
 			try {
 				Log.w(LOG_TAG, "Voice list not found, creating dummy list.");
-				BufferedWriter out = new BufferedWriter(new FileWriter(VOICE_LIST_FILE));
+				BufferedWriter out = new BufferedWriter(new FileWriter(getVoiceListFile()));
 				out.write("eng-USA-male_rms");
 				out.close();
 			} catch (IOException e) {
@@ -154,7 +160,7 @@ public class CheckVoiceData extends Activity {
 		String voiceListURL = Voice.getDownloadURLBasePath() + "voices.list?q=1";
 
 		FileDownloader fdload = new FileDownloader();
-		fdload.saveUrlAsFile(voiceListURL, VOICE_LIST_FILE);
+		fdload.saveUrlAsFile(voiceListURL, getVoiceListFile());
 		while(!fdload.finished) {}
 		boolean savedVoiceList = fdload.success;
 
@@ -172,7 +178,7 @@ public class CheckVoiceData extends Activity {
 	public static ArrayList<Voice> getVoices() {
 		ArrayList<String> voiceList = null;
 		try {
-			voiceList = Utility.readLines(VOICE_LIST_FILE);
+			voiceList = Utility.readLines(getVoiceListFile());
 		} catch (IOException e) {
 			// Ignore exception, since we will return empty anyway.
 		}
