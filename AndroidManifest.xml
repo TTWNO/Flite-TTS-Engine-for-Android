@@ -7,7 +7,7 @@
 
     <uses-sdk
         android:minSdkVersion="9"
-        android:targetSdkVersion="22" />
+        android:targetSdkVersion="24" />
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -18,7 +18,8 @@
         android:label="@string/app_name" >
         <service
             android:name=".FliteTtsService"
-            android:label="@string/app_name" >
+            android:label="@string/app_name"
+            android:directBootAware="true" >
             <intent-filter>
                 <action android:name="android.intent.action.TTS_SERVICE" />
 
@@ -55,6 +56,7 @@
         <activity
             android:name=".CheckVoiceData"
             android:label="@string/app_name"
+            android:directBootAware="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" >
             <intent-filter>
                 <action android:name="android.speech.tts.engine.CHECK_TTS_DATA" />
@@ -65,6 +67,7 @@
         <activity
             android:name=".GetSampleText"
             android:label="@string/app_name"
+            android:directBootAware="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" >
             <intent-filter>
                 <action android:name="android.speech.tts.engine.GET_SAMPLE_TEXT" />
@@ -93,6 +96,7 @@
             android:name=".Flite"
             android:enabled="true"
             android:label="@string/app_name"
+            android:directBootAware="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" >
             <intent-filter>
                 <action android:name="android.intent.action.START_TTS_ENGINE" />
@@ -104,7 +108,8 @@
 
         <provider
             android:name="edu.cmu.cs.speech.tts.flite.providers.SettingsProvider"
-            android:authorities="edu.cmu.cs.speech.tts.flite.providers.SettingsProvider" />
+            android:authorities="edu.cmu.cs.speech.tts.flite.providers.SettingsProvider"
+            android:directBootAware="true" />
     </application>
 
 </manifest>
