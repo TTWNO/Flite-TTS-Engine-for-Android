@@ -55,6 +55,10 @@ ifeq "$(TARGET_ARCH_ABI)" "armeabi-v7a"
   FLITE_BUILD_SUBDIR:="armeabiv7a"
 endif
 
+ifeq "$(TARGET_ARCH_ABI)" "arm64-v8a"
+  FLITE_BUILD_SUBDIR:="aarch64"
+endif
+
 FLITE_LIB_DIR:= $(FLITEDIR)/build/$(FLITE_BUILD_SUBDIR)-android/lib
 ###########################################################################
 
