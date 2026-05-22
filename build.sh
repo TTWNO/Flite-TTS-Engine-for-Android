@@ -52,7 +52,7 @@ FLITE_PATCH='
        		   CFLAGS="$CFLAGS -fpic -O3 -DANDROID --sysroot=$ANDROID_NDK_SYSROOT"
  		fi
  
-@@ -185,7 +191,7 @@
+@@ -185,8 +191,17 @@
  		then
  		   ANDROID_TOOLCHAIN="mipsel-linux-android-$ANDROID_GCC_VERSION"
  		   ANDROID_NDK_SYSROOT="$ANDROID_NDK_PLATFORM_PATH/arch-mips"
@@ -60,6 +60,17 @@ FLITE_PATCH='
 +		   ANDROIDBIN="$ANDROID_NDK/toolchains/mipsel-linux-android-$ANDROID_GCC_VERSION/prebuilt/linux-$ANDROID_GCC_ARCH/bin/mipsel-linux-android"
        		   CFLAGS="$CFLAGS -fpic -O3 -DANDROID --sysroot=$ANDROID_NDK_SYSROOT"
  		fi
+
++		if test "$target_cpu" = "aarch64"
++		then
++		   # arm64 sysroot only exists from API 21 onwards.
++		   ANDROID_TOOLCHAIN="aarch64-linux-android-$ANDROID_GCC_VERSION"
++		   ANDROID_NDK_SYSROOT="$ANDROID_NDK/platforms/android-21/arch-arm64"
++		   ANDROIDBIN="$ANDROID_NDK/toolchains/aarch64-linux-android-$ANDROID_GCC_VERSION/prebuilt/linux-$ANDROID_GCC_ARCH/bin/aarch64-linux-android"
++      		   CFLAGS="$CFLAGS -fpic -O3 -DANDROID --sysroot=$ANDROID_NDK_SYSROOT"
++		fi
++
+ 		# Common to all android variants
 ';
 
 # Abort after first error
@@ -124,7 +135,7 @@ fi
 
 # Build `flight` engine for all supported targets
 cd "${FLITEDIR}"
-for arch in armeabi armeabiv7a x86;
+for arch in armeabi armeabiv7a x86 aarch64;
 do
 	if ! [ -e "${FLITEDIR}/build/${arch}-android/lib/libflite.a" ];
 	then
