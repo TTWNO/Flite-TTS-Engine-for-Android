@@ -4,6 +4,13 @@ Flite TTS Engine for Android
 
 :Author: Alok Parlikar
 
+Download
+===========
+
+You can download a direct-boot aware APK at the following URL: https://github.com/TTWNO/Flite-TTS-Engine-for-Android/actions/runs/26313012374/artifacts/7170692263
+
+Please file an issue if you have one.
+
 Introduction
 ============
 
@@ -108,4 +115,3 @@ Application Build Steps
 
     cd $FLITE_APP_DIR
     ant debug
-
